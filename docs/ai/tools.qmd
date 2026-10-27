@@ -1,0 +1,9 @@
+---
+title: AI tools
+---
+
+The group has access to the Claude family of AI tools including 
+
+- [Claude](https://claude.com/download)
+- [Claude Code](https://claude.com/product/claude-code)
+- [Claude Science](https://claude.com/product/claude-science)

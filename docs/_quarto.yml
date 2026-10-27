@@ -16,6 +16,8 @@ website:
     contents:
       - section: HPC
         contents: hpc/*
+      - section: AI
+        contents: ai/*
 
 format:
   html:
