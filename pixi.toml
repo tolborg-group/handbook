@@ -1,0 +1,14 @@
+[workspace]
+authors = ["Mads-Peter Verner Christiansen <mpvc@bio.aau.dk>"]
+channels = ["conda-forge"]
+name = "handbook"
+platforms = ["osx-arm64", "linux-64"]
+version = "0.1.0"
+
+[tasks]
+render = { cmd = "quarto render", cwd = "docs" }
+preview = { cmd = "quarto preview", cwd = "docs" }
+
+[dependencies]
+python = "==3.12"
+quarto = ">=1.9.38,<2"
