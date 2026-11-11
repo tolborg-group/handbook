@@ -1,0 +1,44 @@
+meta:
+  name: Tolborg Group Handbook
+
+color:
+  palette:
+    teal-dark: "#0f766e"
+    teal-light: "#2dd4bf"
+    slate-900: "#0f172a"
+    slate-800: "#1e293b"
+    slate-200: "#e2e8f0"
+    white: "#ffffff"
+  foreground:
+    light: slate-800
+    dark: slate-200
+  background:
+    light: white
+    dark: slate-900
+  primary:
+    light: teal-dark
+    dark: teal-light
+
+typography:
+  fonts:
+    # Bunny Fonts serves the same families as Google Fonts without tracking.
+    - family: Inter
+      source: bunny
+      weight: [400, 500, 600, 700]
+      style: [normal, italic]
+    - family: JetBrains Mono
+      source: bunny
+      weight: [400, 600]
+  base:
+    family: Inter
+    size: 17px
+    line-height: 1.65
+  headings:
+    family: Inter
+    weight: 600
+    line-height: 1.25
+  monospace:
+    family: JetBrains Mono
+    size: 0.875em
+  link:
+    color: primary

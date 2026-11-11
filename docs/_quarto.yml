@@ -3,16 +3,28 @@ project:
 
 website:
   title: "Tolborg Group Handbook"
-  navbar: 
-    left:      
+  favicon: assets/logo.svg
+  repo-url: https://github.com/tolborg-group/handbook
+  repo-subdir: docs
+  repo-actions: [edit, issue]
+  page-navigation: true
+  back-to-top-navigation: true
+
+  navbar:
+    logo: assets/logo.svg
+    logo-alt: ""
+    left:
       - href: index.qmd
         text: Home
       - href: about.qmd
         text: About
-
+    right:
+      - icon: github
+        href: https://github.com/tolborg-group/handbook
+        aria-label: GitHub repository
 
   sidebar:
-    style: "docked"
+    style: "floating"
     contents:
       - section: Tools
         contents: tools/*
@@ -21,13 +33,32 @@ website:
       - section: AI
         contents: ai/*
 
+  page-footer:
+    left: "Tolborg Group, Aalborg University"
+    right:
+      - icon: github
+        href: https://github.com/tolborg-group/handbook
+        aria-label: GitHub repository
+
 format:
   html:
+    # Colours, fonts and logo are set in _brand.yml, the rest in theme.scss.
+    # theme.scss is listed before brand so that it can read the brand colours.
     theme:
-      - cosmo
-      - brand
-    css: styles.css
+      light: [cosmo, theme.scss, brand]
+      dark: [cosmo, theme.scss, brand]
+    respect-user-color-scheme: true
+    highlight-style:
+      light: github
+      dark: github-dark
+    grid:
+      sidebar-width: 260px
+      body-width: 780px
+      margin-width: 240px
     toc: true
-
-
-
+    toc-depth: 3
+    toc-title: "On this page"
+    code-copy: true
+    code-overflow: wrap
+    anchor-sections: true
+    link-external-newwindow: true

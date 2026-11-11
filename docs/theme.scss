@@ -1,0 +1,155 @@
+// Polish on top of Cosmo and _brand.yml. Used for both the light and the dark
+// theme: every colour is derived from the body colours, so nothing here needs
+// a separate dark version.
+
+/*-- scss:defaults --*/
+
+$navbar-bg: $body-bg;
+$navbar-fg: $body-color;
+$navbar-hl: $primary;
+$footer-bg: $body-bg;
+$footer-fg: $body-color;
+
+$border-radius: 8px;
+$headings-margin-bottom: 0.6em;
+
+/*-- scss:rules --*/
+
+$hb-border: mix($body-color, $body-bg, 14%);
+$hb-subtle: mix($body-color, $body-bg, 5%);
+$hb-muted: mix($body-color, $body-bg, 68%);
+
+// Headings
+h1,
+.title {
+  letter-spacing: -0.02em;
+}
+
+main h2 {
+  margin-top: 2.5rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid $hb-border;
+}
+
+main h3 {
+  margin-top: 2rem;
+}
+
+// Navbar and footer: same surface as the page, separated by a hairline
+.navbar {
+  border-bottom: 1px solid $hb-border;
+}
+
+.navbar-brand {
+  font-weight: 600;
+}
+
+.nav-footer {
+  border-top: 1px solid $hb-border;
+  color: $hb-muted;
+  font-size: 0.85rem;
+}
+
+// Sidebar and table of contents
+.sidebar.sidebar-navigation,
+#TOC {
+  font-size: 0.9rem;
+}
+
+.sidebar-item-section > .sidebar-item-container .sidebar-item-text {
+  font-weight: 600;
+}
+
+.sidebar nav[role="doc-toc"] ul > li > a.active,
+.sidebar-navigation .sidebar-link.active {
+  color: $primary;
+  font-weight: 500;
+}
+
+// Code
+div.sourceCode,
+pre:not(.sourceCode) {
+  background-color: $hb-subtle;
+  border: 1px solid $hb-border;
+  border-radius: $border-radius;
+}
+
+div.sourceCode pre {
+  padding: 0.3rem 0.5rem;
+}
+
+p code:not(.sourceCode),
+li code:not(.sourceCode),
+td code:not(.sourceCode),
+dt code:not(.sourceCode) {
+  background-color: $hb-subtle;
+  border: 1px solid $hb-border;
+  border-radius: 5px;
+  padding: 0.1em 0.35em;
+  color: $body-color;
+}
+
+// Callouts and tables
+div.callout {
+  border-radius: $border-radius;
+}
+
+main table {
+  font-size: 0.92em;
+}
+
+main table thead th {
+  background-color: $hb-subtle;
+}
+
+// Definition lists (used for the list of skills)
+main dt {
+  margin-top: 1rem;
+}
+
+main dd {
+  margin-left: 0;
+  color: $hb-muted;
+}
+
+// Landing page cards
+.section-cards {
+  margin-top: 2rem;
+}
+
+.section-card {
+  border: 1px solid $hb-border;
+  border-radius: 12px;
+  padding: 1.25rem 1.4rem;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+
+  &:hover {
+    border-color: $primary;
+    transform: translateY(-2px);
+  }
+
+  h3 {
+    margin-top: 0;
+    font-size: 1.15rem;
+
+    .bi {
+      color: $primary;
+      margin-right: 0.4rem;
+    }
+  }
+
+  p {
+    color: $hb-muted;
+    font-size: 0.95rem;
+  }
+
+  ul {
+    list-style: none;
+    padding-left: 0;
+    margin-bottom: 0;
+  }
+
+  li {
+    padding: 0.15rem 0;
+  }
+}

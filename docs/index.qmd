@@ -1,5 +1,41 @@
 ---
 title: "Tolborg Group Handbook"
+toc: false
 ---
 
-PLACEHOLDER
+This handbook collects how we work in the group: the tools we use, how to get
+onto the computing clusters, and how we use AI tools. Pick a section below or
+use the sidebar.
+
+::::: {.grid .section-cards}
+
+:::: {.g-col-12 .g-col-md-4 .section-card}
+### <i class="bi bi-tools" aria-hidden="true"></i>Tools
+
+Software and templates that the group's projects build on.
+
+- [Pixi](tools/pixi.qmd)
+- [Paper template](tools/paper-template.qmd)
+::::
+
+:::: {.g-col-12 .g-col-md-4 .section-card}
+### <i class="bi bi-hdd-rack" aria-hidden="true"></i>HPC
+
+The computing clusters we have access to and how to run on them.
+
+- [AI Cloud](hpc/aicloud.qmd)
+- [BioCloud](hpc/biocloud.qmd)
+- [LUMI](hpc/lumi.qmd)
+- [Containers](hpc/containers.qmd)
+::::
+
+:::: {.g-col-12 .g-col-md-4 .section-card}
+### <i class="bi bi-stars" aria-hidden="true"></i>AI
+
+The AI tools available to the group and our shared skills for them.
+
+- [AI tools](ai/tools.qmd)
+- [Group skills](ai/skills.qmd)
+::::
+
+:::::
