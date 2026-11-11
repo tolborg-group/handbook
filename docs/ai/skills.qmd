@@ -80,9 +80,17 @@ def escape(text):
     return re.sub(r"([\\`*_{}\[\]<>|$@~^#])", r"\\\1", text)
 
 
+def first_sentence(text):
+    """Return the first sentence of a description, for the overview table."""
+    text = " ".join(str(text).split())
+    match = re.match(r"(.+?[.!?])(\s|$)", text)
+    return match.group(1) if match else text
+
+
 def build_markdown(files):
     marketplace = json.loads(files[".claude-plugin/marketplace.json"])
-    lines = []
+    overview = ["| Skill | Plugin | Description |", "|---|---|---|"]
+    sections = []
 
     for plugin in marketplace["plugins"]:
         name = plugin["name"]
@@ -92,10 +100,11 @@ def build_markdown(files):
             manifest = files.get(f"{root}/.claude-plugin/plugin.json")
             description = json.loads(manifest).get("description", "") if manifest else ""
 
-        lines += [f"### {name}", ""]
+        plugin_id = f"plugin-{name}"
+        sections += [f"### {name} {{#{plugin_id}}}", ""]
         if description:
-            lines += [escape(description), ""]
-        lines += [
+            sections += [escape(description), ""]
+        sections += [
             "```bash",
             f"claude plugin install {name}@{marketplace['name']}",
             "```",
@@ -110,13 +119,20 @@ def build_markdown(files):
         for path in skill_files:
             meta = frontmatter(files[path].decode("utf-8"))
             skill = meta.get("name") or PurePosixPath(path).parent.name
-            lines += [
-                f"[`/{name}:{skill}`]({REPO_URL}/blob/{BRANCH}/{path})",
-                f":   {escape(meta.get('description', ''))}",
+            skill_id = f"skill-{name}-{skill}"
+            skill_description = meta.get("description", "")
+            overview.append(
+                f"| [`/{name}:{skill}`](#{skill_id}) "
+                f"| [{escape(name)}](#{plugin_id}) "
+                f"| {escape(first_sentence(skill_description))} |"
+            )
+            sections += [
+                f"[[`/{name}:{skill}`]({REPO_URL}/blob/{BRANCH}/{path})]{{#{skill_id}}}",
+                f":   {escape(skill_description)}",
                 "",
             ]
 
-    return "\n".join(lines)
+    return "\n".join(overview + [""] + sections)
 
 
 try:
