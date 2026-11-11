@@ -1,5 +1,6 @@
 ---
 title: Pixi
+order: 1
 ---
 
 [Pixi](https://pixi.sh) is a package manager that installs the software a
@@ -69,14 +70,14 @@ again.
 ### Environments
 
 A project can have more than one environment, e.g. one with Python for
-producing figures and one with LaTeX for compiling a document. The environment
-is selected with `-e`:
+producing figures and one with LaTeX for compiling a document. When a task is
+defined in only one of the environments, Pixi selects that environment
+automatically, such that `pixi run build` is sufficient. For any other command
+the environment named `default` is used, unless another is selected with `-e`:
 
 ```bash
-pixi run -e latex build
+pixi run -e latex tectonic --version
 ```
-
-Without `-e` the environment named `default` is used.
 
 ### The files Pixi uses
 

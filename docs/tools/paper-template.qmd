@@ -1,0 +1,127 @@
+---
+title: Paper template
+---
+
+The group has a LaTeX template for journal articles in the
+[paper-template](https://github.com/tolborg-group/paper-template) repository.
+It uses [Pixi](pixi.qmd) to install LaTeX, such that the only prerequisite for
+compiling a paper is that Pixi is installed, and it uses GitHub Actions to
+compile the PDF on every push.
+
+Compared to Overleaf, the paper is an ordinary git repository on our own
+machine. We write in the editor we prefer, the document compiles offline, the
+scripts that produce the figures are kept next to the text, and co-authors
+contribute through git as they would for code.
+
+This page describes how the template is used. The
+[README](https://github.com/tolborg-group/paper-template#readme) of the
+repository is the reference for the details.
+
+## Starting a paper
+
+Clone the template into a directory named after the paper and disconnect it
+from the template repository:
+
+```bash
+git clone https://github.com/tolborg-group/paper-template.git my-paper
+cd my-paper
+git remote remove origin
+```
+
+The paper then needs its own repository on GitHub. With the
+[GitHub CLI](https://cli.github.com) a private repository is created and the
+paper pushed to it with
+
+```bash
+gh repo create tolborg-group/my-paper --private --source . --push
+```
+
+## Building the PDF
+
+The paper is compiled with
+
+```bash
+pixi run build
+```
+
+which writes `main.pdf` to the root of the repository. While writing, it is
+more convenient to let the PDF be rebuilt whenever a `.tex` or `.bib` file is
+saved:
+
+```bash
+pixi run watch
+```
+
+The template compiles with [Tectonic](https://tectonic-typesetting.github.io),
+which downloads the LaTeX packages a document uses the first time they are
+needed. The first build therefore takes a few minutes and requires an internet
+connection, while later builds are fast and work offline. A new package is
+used by adding the `\usepackage` line; nothing has to be installed by hand.
+
+LaTeX lives in its own environment, named `latex`, which Pixi selects
+automatically for these tasks, see [Environments](pixi.qmd#environments).
+
+## Layout
+
+```
+main.tex            preamble, title, author list and the order of the sections
+sections/           one file per section
+figures/            the figures and the scripts that produce them
+references.bib      the BibTeX database
+pixi.toml           the environments and tasks
+.github/workflows/  the CI build
+```
+
+Each section is its own file, which keeps the differences between versions
+small and makes it easier for several authors to work at the same time.
+
+`main.tex` defines two commands for communicating between authors: `\todo{…}`
+renders in red and `\note{…}` in blue. Both should be gone before submission.
+The remaining writing conventions, e.g. the use of `siunitx` and `cleveref`,
+are listed in the README.
+
+## Target journal
+
+The template is set up for Physical Review Letters through REVTeX 4-2. Other
+APS journals only require a different class option in the first line of
+`main.tex`, e.g. `prb` instead of `prl`. For ACS journals the document class is
+replaced by `achemso`, and most other publishers supply a `.cls` file that is
+placed in the root of the repository. The README has the details.
+
+## Figures
+
+The figures used by LaTeX are committed to `figures/` together with the Python
+scripts that generate them, such that every figure in the paper can be traced
+back to, and regenerated from, its script. The scripts run in the default
+environment:
+
+```bash
+pixi run python figures/kpoint-convergence.py
+```
+
+This environment has `matplotlib` and `pandas`. Other packages are added with
+`pixi add`, see [Adding packages](pixi.qmd#adding-packages).
+
+## The PDF on GitHub
+
+Every push to `main` and every pull request compiles the paper on GitHub, and
+the PDF is kept for 30 days as an artifact of that run. It is found under the
+**Actions** tab of the repository, or downloaded with `gh run download`. This
+allows a co-author to read the current state of the paper without compiling
+it, and it shows immediately when a change has broken the build.
+
+A version that should be kept, e.g. the one that was submitted, is marked with
+a tag that starts with `v`:
+
+```bash
+git tag v1.0-submitted
+git push origin v1.0-submitted
+```
+
+This creates a release on GitHub with the PDF attached.
+
+## Help from Claude
+
+Two of the [group skills](../ai/skills.qmd) are useful when working with the
+template: `/latex:diagnose` finds out why a document does not compile, and
+`/git:sync` commits, pulls and pushes for those who do not use git daily.
