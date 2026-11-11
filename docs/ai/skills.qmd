@@ -1,0 +1,141 @@
+---
+title: Group skills
+---
+
+The group maintains a set of shared *skills* for Claude Code in the
+[group-skills](https://github.com/tolborg-group/group-skills) repository. A
+skill is a set of instructions for a particular kind of task, e.g. syncing a
+git repository or finding out why a LaTeX document does not compile. You can
+call a skill by name, e.g. `/git:sync`, and Claude also picks one up on its own
+when you describe a task the skill covers.
+
+The skills are grouped into *plugins* that are installed separately, and the
+repository is a plugin *marketplace* that Claude Code can install them from.
+
+## Setup
+
+Add the marketplace once, in a terminal:
+
+```bash
+claude plugin marketplace add tolborg-group/group-skills
+```
+
+Then install the plugins you want with the commands listed below, or run
+`/plugin` inside Claude Code and browse the marketplace.
+
+Updates are not automatic by default. Either run `claude plugin update` with
+the name of the plugin, e.g. `claude plugin update git@tolborg-group`, or turn
+on auto-update for the marketplace under **Marketplaces** in `/plugin`.
+
+## Available skills
+
+The overview below is read from the repository every time the handbook is
+rendered.
+
+```{python}
+#| echo: false
+#| output: asis
+
+# Reads the plugins and skills from the main branch of the group-skills
+# repository and prints them as Markdown.
+
+import io
+import json
+import os
+import re
+import tarfile
+import urllib.request
+from pathlib import PurePosixPath
+
+import yaml
+
+REPO = "tolborg-group/group-skills"
+BRANCH = "main"
+ARCHIVE_URL = f"https://codeload.github.com/{REPO}/tar.gz/refs/heads/{BRANCH}"
+REPO_URL = f"https://github.com/{REPO}"
+
+
+def download_repo():
+    """Return the files of the repository as {path relative to repo root: content}."""
+    with urllib.request.urlopen(ARCHIVE_URL, timeout=30) as response:
+        archive = response.read()
+    files = {}
+    with tarfile.open(fileobj=io.BytesIO(archive), mode="r:gz") as tar:
+        for member in tar:
+            if member.isfile():
+                # Drop the "<repo>-<branch>/" directory the archive wraps everything in.
+                path = PurePosixPath(*PurePosixPath(member.name).parts[1:])
+                files[str(path)] = tar.extractfile(member).read()
+    return files
+
+
+def frontmatter(text):
+    match = re.match(r"^---\s*\n(.*?)\n---\s*(\n|$)", text, re.DOTALL)
+    return (yaml.safe_load(match.group(1)) or {}) if match else {}
+
+
+def escape(text):
+    """Make free text safe to place in Markdown (no accidental math, citations, markup)."""
+    text = " ".join(str(text).split())
+    return re.sub(r"([\\`*_{}\[\]<>|$@~^#])", r"\\\1", text)
+
+
+def build_markdown(files):
+    marketplace = json.loads(files[".claude-plugin/marketplace.json"])
+    lines = []
+
+    for plugin in marketplace["plugins"]:
+        name = plugin["name"]
+        root = str(PurePosixPath(plugin["source"]))  # "./plugins/git" -> "plugins/git"
+        description = plugin.get("description")
+        if not description:
+            manifest = files.get(f"{root}/.claude-plugin/plugin.json")
+            description = json.loads(manifest).get("description", "") if manifest else ""
+
+        lines += [f"### {name}", ""]
+        if description:
+            lines += [escape(description), ""]
+        lines += [
+            "```bash",
+            f"claude plugin install {name}@{marketplace['name']}",
+            "```",
+            "",
+        ]
+
+        skill_files = sorted(
+            path
+            for path in files
+            if path.startswith(f"{root}/skills/") and path.endswith("/SKILL.md")
+        )
+        for path in skill_files:
+            meta = frontmatter(files[path].decode("utf-8"))
+            skill = meta.get("name") or PurePosixPath(path).parent.name
+            lines += [
+                f"[`/{name}:{skill}`]({REPO_URL}/blob/{BRANCH}/{path})",
+                f":   {escape(meta.get('description', ''))}",
+                "",
+            ]
+
+    return "\n".join(lines)
+
+
+try:
+    print(build_markdown(download_repo()))
+except Exception:
+    # On CI an empty overview must not be published silently; locally (e.g.
+    # offline) the rest of the handbook should still render.
+    if os.environ.get("CI"):
+        raise
+    print(
+        "::: {.callout-warning}\n"
+        "The list of skills could not be fetched when this page was rendered. "
+        f"See the [group-skills repository]({REPO_URL}) instead.\n"
+        ":::"
+    )
+```
+
+## Contributing
+
+New skills and improvements to the existing ones are welcome, see
+[CONTRIBUTING.md](https://github.com/tolborg-group/group-skills/blob/main/CONTRIBUTING.md)
+in the repository.
