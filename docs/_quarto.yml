@@ -24,7 +24,7 @@ website:
         aria-label: GitHub repository
 
   sidebar:
-    style: "floating"
+    style: "docked"
     contents:
       - section: Tools
         contents: tools/*
@@ -53,7 +53,7 @@ format:
       dark: github-dark
     grid:
       sidebar-width: 260px
-      body-width: 780px
+      body-width: 680px
       margin-width: 240px
     toc: true
     toc-depth: 3

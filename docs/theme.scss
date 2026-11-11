@@ -56,7 +56,12 @@ main h3 {
   font-size: 0.9rem;
 }
 
-.sidebar-item-section > .sidebar-item-container .sidebar-item-text {
+// Docked sidebar: same hairline as the navbar instead of Quarto's fixed light grey
+.sidebar.sidebar-navigation:not(.rollup) {
+  border-right: 1px solid $hb-border !important;
+}
+
+.sidebar-item-section >.sidebar-item-container .sidebar-item-text {
   font-weight: 600;
 }
 
