@@ -11,6 +11,10 @@ In order to edit the handbook it is recommended to use a local preview, this is 
 - [Pixi installation](https://pixi.prefix.dev/latest/installation/)
 
 Pixi is a modern package management tool (comparable to Conda but better and faster). 
+The handbook has its own page on Pixi, which covers installation and day-to-day use in more detail, see 
+
+- [Pixi in the handbook](https://tolborg-group.github.io/handbook/tools/pixi.html)
+
 With Pixi installed the environment required to preview the handbook can be setup with 
 
 ```sh

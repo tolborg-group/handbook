@@ -14,6 +14,8 @@ website:
   sidebar:
     style: "docked"
     contents:
+      - section: Tools
+        contents: tools/*
       - section: HPC
         contents: hpc/*
       - section: AI
