@@ -132,6 +132,7 @@ def build_markdown(files):
                 "",
             ]
 
+    overview = ["::: {.skills-overview}", "", *overview, "", ":::"]
     return "\n".join(overview + [""] + sections)
 
 

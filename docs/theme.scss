@@ -102,6 +102,11 @@ main table thead th {
   background-color: $hb-subtle;
 }
 
+// Overview table of the skills: keep the skill and plugin names on one line
+.skills-overview td:not(:last-child) {
+  white-space: nowrap;
+}
+
 // Definition lists (used for the list of skills)
 main dt {
   margin-top: 1rem;
