@@ -3,16 +3,20 @@ title: "Tolborg Group Handbook"
 toc: false
 ---
 
-This handbook collects how we work in the group: the tools we use, how to get
-onto the computing clusters, and how we use AI tools. Pick a section below or
-use the sidebar.
+This handbook is a recent, and still incomplete, attempt at writing down
+practices for working in the group, covering the tools we use, how to get onto
+the computing clusters and how we use AI tools. The pages are suggestions
+rather than settled group conventions, and they are meant to be adapted as the
+group tries them out. If something does not fit how you work, or something is
+missing, please open an issue or suggest a change through the links at the
+bottom of each page.
 
 ::::: {.grid .section-cards}
 
 :::: {.g-col-12 .g-col-md-4 .section-card}
 ### <i class="bi bi-tools" aria-hidden="true"></i>Tools
 
-Software and templates that the group's projects build on.
+Software and templates we suggest building projects on.
 
 - [Pixi](tools/pixi.qmd)
 - [Paper template](tools/paper-template.qmd)
