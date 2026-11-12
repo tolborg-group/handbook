@@ -83,10 +83,17 @@ div.sourceCode pre {
   padding: 0.3rem 0.5rem;
 }
 
+// Quarto gives `li code.sourceCode` a light background meant for inline code,
+// which also hits code blocks inside list items; the block already has one.
+div.sourceCode pre code.sourceCode {
+  background-color: transparent;
+}
+
 p code:not(.sourceCode),
 li code:not(.sourceCode),
 td code:not(.sourceCode),
-dt code:not(.sourceCode) {
+dt code:not(.sourceCode),
+dd code:not(.sourceCode) {
   background-color: $hb-subtle;
   border: 1px solid $hb-border;
   border-radius: 5px;
