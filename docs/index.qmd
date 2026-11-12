@@ -28,6 +28,7 @@ Software and templates we suggest building projects on.
 The computing clusters we have access to and how to run on them.
 
 - [SSH](hpc/ssh.qmd)
+- [Slurm](hpc/slurm.qmd)
 - [AI Cloud](hpc/aicloud.qmd)
 - [BioCloud](hpc/biocloud.qmd)
 - [LUMI](hpc/lumi.qmd)

@@ -1,0 +1,258 @@
+---
+title: Slurm
+order: 2
+---
+
+Both BioCloud and AI Cloud use [Slurm](https://slurm.schedmd.com) to share
+their compute nodes between users. Instead of running a calculation directly,
+you describe what it needs, e.g. four CPU cores, 8 GB of memory and two hours,
+and submit it as a *job*. Slurm places the job in a queue and starts it on a
+compute node once the requested resources are free. This page covers the parts
+of Slurm that are the same on both clusters; the differences are summarised at
+the end and described further on the page for each cluster.
+
+The work that does not belong in a job is limited to what the login node is
+for: editing files, moving data, installing software and submitting jobs.
+Everything else, including short tests, runs as a job.
+
+## A first job script
+
+A job is most often described by a *job script*, an ordinary shell script in
+which the lines starting with `#SBATCH` tell Slurm what the job needs:
+
+```bash
+#!/bin/bash
+#SBATCH --job-name=fit
+#SBATCH --output=%x_%j.out
+#SBATCH --time=0-02:00:00
+#SBATCH --cpus-per-task=4
+#SBATCH --mem=8G
+
+python fit.py
+```
+
+`--job-name`
+:   The name shown in the queue.
+
+`--output`
+:   The file that receives everything the job prints. `%x` is replaced by the
+    job name and `%j` by the job ID, such that each job writes to its own
+    file. The directory has to exist beforehand, otherwise the job fails
+    without producing any output.
+
+`--time`
+:   The maximum run time, written as `days-hours:minutes:seconds`. The job is
+    stopped when the time runs out, whether it has finished or not.
+
+`--cpus-per-task`
+:   The number of CPU cores.
+
+`--mem`
+:   The memory for the job. The job is stopped if it uses more.
+
+How the software environment is made available inside the job, e.g. the
+Python that runs `fit.py`, differs between the clusters and is described on
+the cluster pages.
+
+## Submitting and following jobs
+
+A job script is submitted with
+
+```bash
+sbatch job.sh
+```
+
+which prints the job ID. By default the job starts in the directory from which
+it was submitted, so relative paths in the script are relative to that
+directory. The commands for following jobs are
+
+| Command | Purpose |
+|---------|---------|
+| `squeue --me` | List your queued and running jobs, and the reason a job is waiting. |
+| `scancel <jobid>` | Cancel a job; `scancel -u $USER` cancels all of your jobs. |
+| `sacct -j <jobid>` | Show the state of a job after it has finished. |
+| `seff <jobid>` | Show how much of the requested time, CPU and memory a finished job used. |
+
+While a job runs, its output can be followed with `tail -f fit_<jobid>.out`.
+
+A single command can also be submitted without writing a script, using
+`--wrap`:
+
+```bash
+sbatch --time=0-00:10:00 --mem=2G --wrap="python test.py"
+```
+
+## Requesting resources
+
+A job never gets more than it asks for, and a request that is too large waits
+longer in the queue and blocks resources for others. The aim is therefore to
+ask for what the job needs with a reasonable margin, which in practice is
+found by running a small version of the calculation first and checking it
+with `seff`.
+
+### Time
+
+A shorter time limit makes a job easier to fit into the gaps in the schedule,
+so it often starts sooner. A margin of 20–50 % over the expected run time is
+usually reasonable. Calculations that run longer than the maximum time limit
+of a partition need to be able to save their progress and restart from it.
+
+### CPUs, tasks and threads
+
+Slurm distinguishes between *tasks*, which are processes, and the CPU cores
+each task gets. `--ntasks` sets the number of tasks and `--cpus-per-task` the
+number of cores for each of them, such that a job asks for
+`ntasks × cpus-per-task` cores in total. Getting this right is one of the
+trickier parts of Slurm, because which combination is correct depends on how
+the program itself uses the cores, and Slurm only reserves them; it is up to
+the program to use them.
+
+A single process that uses threads, which covers most Python code, needs one
+task with several cores, i.e. only `--cpus-per-task`. NumPy, PyTorch and
+similar libraries use threads internally, but they do not always detect the
+number of cores they have been given and may start one thread for every core
+on the node, which slows the job down and affects other jobs on the same
+node. Setting the number of threads explicitly in the job script avoids this:
+
+```bash
+export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
+```
+
+Programs that run as several cooperating processes instead need
+`--ntasks`. The most common case is MPI, used by many DFT codes, where the
+processes are started with `srun`, `mpirun` or `mpiexec`; which of these is
+preferred depends on the program and on how it was installed on the cluster,
+so the documentation of the program and of the cluster is the place to look.
+This also applies when a single Python process starts the parallel program as
+a subprocess, as ASE calculators for e.g. VASP and Quantum ESPRESSO do: the
+job still needs `--ntasks` for the processes the subprocess starts, even
+though the job script itself only runs one Python process. Frameworks for parallel Python, such as Ray, may likewise need `--ntasks` to
+get several workers. Some programs combine the two, with several MPI
+processes that each use a few threads.
+
+Whatever the combination, a short test job followed by `seff` (see
+[below](#checking-what-a-job-used)) shows whether the program actually used
+the cores it was given.
+
+### Memory
+
+`--mem` sets the memory for the whole job. If a job is stopped with an
+`OUT_OF_MEMORY` state in `sacct`, the request was too small. The default on
+BioCloud is only 512 MB, so the memory should always be set explicitly.
+
+### GPUs
+
+A GPU is requested with
+
+```bash
+#SBATCH --gres=gpu:1
+```
+
+and is only worth requesting when the code actually uses it. A GPU job still
+needs CPU cores and memory for loading data, so those are requested as well.
+While the job runs, `nvidia-smi` on the node shows whether the GPU is in use.
+
+## Checking what a job used
+
+After a job has finished, `seff` compares what was requested with what was
+used:
+
+```
+$ seff 123456
+Job ID: 123456
+State: COMPLETED (exit code 0)
+Cores per node: 4
+CPU Efficiency: 96.50% of 07:32:10 core-walltime
+Memory Utilized: 3.10 GB
+Memory Efficiency: 38.75% of 8.00 GB
+```
+
+Here the CPU cores were well used, while the memory request could be halved.
+A CPU efficiency close to `100 / cores` %, e.g. 25 % for four cores, means
+that the program only used a single core, and the extra cores were wasted.
+Checking this for the first few jobs of a new kind of calculation is worth the
+minute it takes.
+
+## Many similar jobs
+
+Running the same script for many inputs, e.g. one calculation per structure,
+is done with a *job array*. The script is submitted once, and Slurm runs it as
+many times as requested, each time with a different value of
+`SLURM_ARRAY_TASK_ID`:
+
+```bash
+#!/bin/bash
+#SBATCH --job-name=relax
+#SBATCH --output=logs/%x_%A_%a.out
+#SBATCH --time=0-01:00:00
+#SBATCH --cpus-per-task=2
+#SBATCH --mem=4G
+#SBATCH --array=0-99%10
+
+python relax.py --index $SLURM_ARRAY_TASK_ID
+```
+
+`--array=0-99` creates 100 tasks, and `%10` lets at most 10 of them run at the
+same time, which keeps an array from occupying the cluster. In the output file
+name `%A` is the ID of the array and `%a` the task number. All tasks are
+cancelled together with `scancel <arrayid>`.
+
+## Interactive jobs
+
+Sometimes a shell on a compute node is useful, e.g. to test a script with real
+resources or to compile code. `srun` starts one:
+
+```bash
+srun --time=0-01:00:00 --cpus-per-task=2 --mem=4G --pty bash
+```
+
+The shell ends with `exit`, which also ends the job. An interactive job
+occupies its resources whether anything is running or not, so it should be
+closed as soon as it is no longer needed, and longer calculations belong in a
+batch job. AI Cloud does not allow interactive sessions that sit idle, and
+discourages interactive GPU sessions outside of troubleshooting.
+
+## Useful variables
+
+Slurm sets a number of environment variables inside a job, which the script
+can use:
+
+| Variable | Value |
+|----------|-------|
+| `SLURM_JOB_ID` | The job ID. |
+| `SLURM_CPUS_PER_TASK` | The number of cores requested with `--cpus-per-task`. |
+| `SLURM_ARRAY_TASK_ID` | The task number in a job array. |
+| `SLURM_SUBMIT_DIR` | The directory the job was submitted from. |
+
+## Differences between the clusters
+
+| | BioCloud | AI Cloud |
+|---|---|---|
+| Purpose | CPU work | GPU work |
+| Partition | Chosen automatically; `--partition` is ignored for batch jobs | `prioritized` by default |
+| Interactive work | A dedicated interactive partition, and the [web portal](https://docs.biocloud.bio.aau.dk/access/webportal/) | Idle interactive sessions are not allowed |
+| GPUs | A single GPU node, only for jobs that need a GPU | `--gres=gpu:<n>`; request only what the job uses |
+| Software in jobs | Conda or Apptainer^\*^ containers; conda requires `#!/usr/bin/bash -l` as the first line | Singularity^\*^ containers, run with `singularity exec --nv` |
+
+^\*^ Apptainer is the continuation of Singularity under a new name, and the two
+are used in the same way; an Apptainer installation also provides the
+`singularity` command.
+
+## Rules of thumb
+
+- Do not run calculations on the login node, however small.
+- Set `--time`, `--cpus-per-task` and `--mem` explicitly in every job.
+- Check new kinds of jobs with `seff`, and adjust the request accordingly.
+- Throttle large job arrays with `%`.
+- Close interactive jobs when they are no longer in use.
+
+## Further reading
+
+- BioCloud: [Introduction to SLURM](https://docs.biocloud.bio.aau.dk/slurm/intro/),
+  [Job submission](https://docs.biocloud.bio.aau.dk/slurm/jobsubmission/) and
+  [Usage accounting and priority](https://docs.biocloud.bio.aau.dk/slurm/accounting/)
+- AI Cloud: [Run jobs](https://hpc.aau.dk/ai-cloud/getting-started/run-jobs/),
+  [CPU, GPU and memory allocation](https://hpc.aau.dk/ai-cloud/additional-guides/cpu-gpu-and-memory-allocation/)
+  and [Fair usage](https://hpc.aau.dk/ai-cloud/fair-usage/)
+- The [Slurm documentation](https://slurm.schedmd.com/documentation.html), in
+  particular the [sbatch manual](https://slurm.schedmd.com/sbatch.html).
