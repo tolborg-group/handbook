@@ -7,7 +7,7 @@ order: 1
 project needs into an environment that belongs to that project. It is
 comparable to Conda, but faster, and it records the exact versions that were
 installed, such that a collaborator, a cluster or a CI run gets the same
-environment as we have locally.
+environment as you have locally.
 
 Pixi is not limited to Python packages. It installs from
 [conda-forge](https://conda-forge.org), which also provides compilers, command
@@ -83,7 +83,7 @@ pixi run -e latex tectonic --version
 
 `pixi.toml`
 :   The manifest. It lists the packages the project needs, the tasks and the
-    environments, and it is the file that we edit, either by hand or with the
+    environments, and it is the file that you edit, either by hand or with the
     commands below.
 
 `pixi.lock`
@@ -115,7 +115,7 @@ from conda-forge by default. A Python package that is only available on
 pixi add --pypi <package>
 ```
 
-In general we prefer the conda-forge version when both exist, in particular for
+In general the conda-forge version is preferred when both exist, in particular for
 packages that depend on compiled libraries. A package is removed again with
 `pixi remove`, and `pixi search <package>` shows whether a package is available
 on conda-forge.
@@ -138,7 +138,7 @@ pixi task add fit "python fit.py"
 
 ## Tools that are not tied to a project
 
-Command line tools that we want available everywhere, rather than in a single
+Command line tools that should be available everywhere, rather than in a single
 project, are installed with `pixi global`:
 
 ```bash
