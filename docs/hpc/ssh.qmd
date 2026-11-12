@@ -1,0 +1,207 @@
+---
+title: SSH
+order: 1
+---
+
+SSH (Secure Shell) is the way to connect to the clusters. It gives you a
+terminal on a remote machine, the *login node*, from where you manage files,
+edit code and submit jobs, and it is also what file transfers and editors such
+as VS Code use under the hood. This page covers what is common to BioCloud and
+AI Cloud; the cluster documentation covers the same ground for each cluster
+separately, but describes the setup in slightly different ways.
+
+The login node is shared by everyone using the cluster and is only meant for
+light work. Anything that takes more than a few seconds of computation should
+be submitted as a job to a compute node instead.
+
+## Hostnames and usernames
+
+| Cluster   | Login node             |
+|-----------|------------------------|
+| BioCloud  | `bio-fe01.srv.aau.dk`, `bio-fe02.srv.aau.dk` |
+| AI Cloud  | `ai-fe02.srv.aau.dk`   |
+| Gateway   | `sshgw.aau.dk`         |
+
+On both clusters the username is the full AAU email address, e.g.
+`abc@bio.aau.dk`, and the password is the AAU password. Because the username
+itself contains an `@`, a login on the command line looks slightly unusual:
+
+```bash
+ssh abc@bio.aau.dk@bio-fe01.srv.aau.dk
+```
+
+where everything before the last `@` is the username. The first time you
+connect to a machine, SSH asks whether you trust its host key, to which the
+answer is `yes`.
+
+Access to a cluster has to be granted before the login works; how that is done
+is described on the page for each cluster.
+
+## Connecting from outside campus
+
+The clusters are only reachable from the AAU network. From elsewhere there are
+two options:
+
+- **The AAU VPN.** When the VPN is connected, everything on this page works as
+  it does on campus.
+- **The SSH gateway**, `sshgw.aau.dk`. SSH connects to the gateway first and
+  jumps from there to the cluster, which requires no VPN client but asks for
+  two-factor authentication at the gateway. On the command line this is done
+  with `-J`:
+
+  ```bash
+  ssh -J abc@bio.aau.dk@sshgw.aau.dk abc@bio.aau.dk@bio-fe01.srv.aau.dk
+  ```
+
+In practice, neither of these commands needs to be typed once the
+configuration file below is in place.
+
+## The SSH configuration file
+
+SSH reads the file `~/.ssh/config` on your own machine (on Windows
+`C:\Users\<name>\.ssh\config`), in which each cluster can be given a short name
+together with the username and other settings. We recommend the following,
+with `abc@bio.aau.dk` replaced by your own email address:
+
+```
+Host sshgw
+    HostName sshgw.aau.dk
+
+Host biocloud
+    HostName bio-fe01.srv.aau.dk
+    # ProxyJump sshgw
+
+Host aicloud
+    HostName ai-fe02.srv.aau.dk
+    # ProxyJump sshgw
+
+Host sshgw biocloud aicloud
+    User abc@bio.aau.dk
+    IdentityFile ~/.ssh/id_ed25519
+    ServerAliveInterval 60
+```
+
+Connecting is then just
+
+```bash
+ssh biocloud
+```
+
+and the same short names work for `scp`, `rsync`, VS Code and `git` remotes.
+When working from outside campus without the VPN, remove the `#` in front of
+`ProxyJump sshgw` for the cluster in question, such that SSH goes through the
+gateway automatically. `ServerAliveInterval` keeps an idle connection from
+being dropped.
+
+The configuration deliberately points at one specific BioCloud login node,
+`bio-fe01`, rather than switching between the two. Things that live on the
+login node, such as a `tmux` session, are only found again when returning to
+the same node.
+
+## SSH keys
+
+Typing the password at every login quickly becomes tedious, and tools such as
+VS Code and `rsync` connect several times. An SSH key replaces the password: it
+consists of a private key, which should never leave your own machine, and a
+public key, which needs to be copied to the cluster.
+
+A key is created once for each machine you work from with
+
+```bash
+ssh-keygen -t ed25519
+```
+
+accepting the default location (`~/.ssh/id_ed25519`). The passphrase it asks
+for protects the private key should your laptop be lost, and setting one is
+recommended; macOS, Linux and Windows can all remember it after the first use,
+such that it does not need to be typed again.
+
+The public key is then copied to a cluster with
+
+```bash
+ssh-copy-id biocloud
+```
+
+which asks for the AAU password one last time. On Windows, where
+`ssh-copy-id` is not available, the following does the same in PowerShell:
+
+```powershell
+type $env:USERPROFILE\.ssh\id_ed25519.pub | ssh biocloud "mkdir -p ~/.ssh && cat >> ~/.ssh/authorized_keys"
+```
+
+Repeat this for `aicloud`. If the login still asks for a password afterwards,
+the cause is almost always the permissions on the cluster, which SSH requires
+to be strict:
+
+```bash
+chmod 700 ~/.ssh && chmod 600 ~/.ssh/authorized_keys
+```
+
+The same key can be added to GitHub, which is the most convenient way to clone
+and push repositories from your own machine. For using GitHub from the
+clusters themselves, the BioCloud documentation describes
+[how to connect to GitHub](https://docs.biocloud.bio.aau.dk/guides/git/).
+
+## Copying files
+
+Files that are not code, e.g. input structures or results, are copied with
+`rsync` or `scp` from your own machine. Code is better moved through git, by
+pushing from one machine and pulling on the other, such that the cluster and
+your laptop never drift apart.
+
+```bash
+# Copy a directory to the cluster
+rsync -av results/ biocloud:project/results/
+
+# Copy it back again
+rsync -av biocloud:project/results/ results/
+```
+
+The trailing `/` on the source matters: with it, the *contents* of `results`
+are copied, without it the directory itself is copied into the destination.
+`rsync` only transfers what has changed and can resume an interrupted
+transfer, which makes it the better choice for anything large. `scp` works the
+same way for single files, e.g. `scp structure.traj aicloud:`, and is also
+available on Windows, where `rsync` is not installed by default.
+
+## Editors
+
+VS Code with the
+[Remote - SSH](https://code.visualstudio.com/docs/remote/ssh) extension can
+open a folder on the cluster as if it were local, and it picks up the hosts
+from the configuration file. It does, however, run a server process on the
+login node, and the two clusters take different views on this:
+
+- **BioCloud** supports it, but asks that you open a project folder rather
+  than the whole home directory, as indexing the latter runs on the login
+  node. BioCloud additionally offers VS Code, Jupyter and RStudio through its
+  [web portal](https://docs.biocloud.bio.aau.dk/access/webportal/), where they
+  run as a job on a compute node.
+- **AI Cloud** discourages Remote - SSH on its front-end node, and likewise
+  asks that AI coding assistants are not run there. On AI Cloud, code should
+  therefore be edited locally and moved with git.
+
+For small edits directly on the cluster, a terminal editor such as `nano` or
+`vim` is sufficient.
+
+## Common problems
+
+`Connection timed out` or no response at all
+:   You are not on the AAU network. Connect the VPN, or enable
+    `ProxyJump sshgw` in the configuration file.
+
+`Permission denied`
+:   Either the username is wrong, which should be the full email address, or
+    access to the cluster has not been granted yet.
+
+`WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED`
+:   The login node has been reinstalled, which happens occasionally after
+    maintenance. If the cluster has announced maintenance, the old key is
+    removed with `ssh-keygen -R <hostname>`; if not, ask before connecting.
+
+## Further reading
+
+- BioCloud: [Shell access through SSH](https://docs.biocloud.bio.aau.dk/access/ssh/)
+- AI Cloud: [Login](https://hpc.aau.dk/ai-cloud/getting-started/login/)
+- [Fair usage on AI Cloud](https://hpc.aau.dk/ai-cloud/fair-usage/), which
+  covers the rules for the front-end node.
