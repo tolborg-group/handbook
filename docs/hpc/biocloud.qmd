@@ -1,3 +1,158 @@
 ---
 title: BioCloud
+order: 4
 ---
+
+BioCloud is a CPU cluster at AAU, with nodes that have many cores and a large
+amount of memory each, along with a single node with two GPUs. It is the
+natural place for CPU calculations, e.g. DFT, sampling with machine-learned
+potentials and data processing, while GPU work such as training models is
+better placed on [AI Cloud](aicloud.qmd).
+
+This page assumes that you have read the pages on [SSH](ssh.qmd) and
+[Slurm](slurm.qmd), and it only describes what is specific to BioCloud. The
+[BioCloud documentation](https://docs.biocloud.bio.aau.dk/) asks that new
+users read all of it, which is well worth doing; it is not long.
+
+## Access
+
+Access is granted to your AAU account by a BioCloud administrator, as
+described in the
+[introduction](https://docs.biocloud.bio.aau.dk/) of the documentation. Once
+it has been granted, you can log in with `ssh biocloud` using the
+configuration from the [SSH page](ssh.qmd).
+
+In addition to SSH, BioCloud has a
+[web portal](https://docs.biocloud.bio.aau.dk/access/webportal/) at
+<https://biocloud.bio.aau.dk>, from where Jupyter, VS Code, RStudio and a
+virtual desktop can be started as jobs on a compute node. Like SSH, it
+requires the AAU network or the VPN.
+
+## Storage
+
+| Location | Purpose |
+|----------|---------|
+| `/home/<user>` | Your own files and individual projects. |
+| `/projects` | Projects shared between several people, organised as `/projects/<PI>/<project>`. |
+| `/tmp` on a compute node | Fast local scratch space for a running job, deleted when your last job on the node ends. |
+
+Both `/home` and `/projects` are on the same network storage, which is shared
+by all nodes, such that files written on the login node are available in jobs
+and vice versa. Two properties of this storage are worth knowing from the
+start:
+
+- **Nothing is backed up.** A deleted file cannot be recovered. Code belongs
+  in git, and results that matter should be copied elsewhere.
+- **Many small files are slow.** The storage handles a few large files well,
+  but directories with tens of thousands of small files, such as Python
+  environments, put a load on it. This is the reason BioCloud recommends
+  containers, see [Software](#software) below.
+
+Local scratch space is only available on some nodes, and is requested with
+`--constraint scratch`; the
+[local scratch page](https://docs.biocloud.bio.aau.dk/storage/local/)
+describes how to use it.
+
+## Partitions
+
+BioCloud chooses the partition for a batch job itself, and `--partition` has
+no effect on batch jobs. It prefers the partitions in the order of the table
+below, using the next one when the first has no room.
+Knowing the partitions is therefore mostly useful for
+understanding where a job ended up and how large a single job can be.
+
+| Partition | Nodes | Cores | Memory | Max time | Billing | Purpose |
+|-----------|------:|------:|-------:|---------:|--------:|---------|
+| `zen5` | 5 | 1376 | 7550 GB | 14 days | 1.0 | Batch jobs, first choice |
+| `zen3` | 6 | 1216 | 6036 GB | 14 days | 0.5 | Batch jobs |
+| `zen5x` | 2 | 576 | 4532 GB | 14 days | 1.5 | Batch jobs, more memory per node |
+| `zen3x` | 2 | 448 | 4004 GB | 14 days | 1.0 | Batch jobs, more memory per node |
+| `interactive` | 1 | 192 | 502 GB | 1 day | 0.5 | Interactive jobs and the web portal |
+| `gpu-a10` | 1 | 64 | 250 GB | 14 days | 0.5 + 16 per GPU | Jobs that use a GPU (2 × NVIDIA A10) |
+
+The cores and memory are totals for the partition; a single job is limited by
+what is available on one node, unless it uses MPI across several nodes. The
+cores are counted as Slurm counts them, i.e. as hardware threads, which is
+twice the number of physical cores. The default time limit is one hour in all
+partitions.
+
+The billing factor determines how much a job counts towards your account's
+usage, which in turn lowers the priority of your next jobs: an hour on 10
+cores counts as 10 core hours on `zen5`, 5 on `zen3` and 15 on `zen5x`. Each
+GPU hour adds another 16, such that the GPU node should only be used by jobs that
+actually use the GPU. The
+[accounting page](https://docs.biocloud.bio.aau.dk/slurm/accounting/) describes
+how priority is calculated.
+
+The table reflects the cluster in November 2026. The current state is shown
+with
+
+```bash
+sinfo -s
+scontrol show partition
+```
+
+## Software
+
+BioCloud recommends containers, run with
+[Apptainer](https://docs.biocloud.bio.aau.dk/software/containers/), for most
+software, because an environment inside a container is a single file on the
+network storage rather than tens of thousands. Conda (with `mamba`) is
+installed and configured as well, and is described on the
+[conda page](https://docs.biocloud.bio.aau.dk/software/conda/).
+
+In practice, an environment in the project directory, e.g. with
+[Pixi](../tools/pixi.qmd) or uv, is fine for development and a moderate number
+of jobs. When a project grows to many jobs or many users, building a
+container from the same environment is the more considerate choice; the
+[Containers](containers.qmd) page describes how.
+
+Two rules from the BioCloud documentation are easy to miss:
+
+- Containers are built on the login node, not inside a Slurm job.
+- Container images are always referenced with a specific version tag, never
+  `latest`, such that the same job gives the same result later.
+
+## A job on BioCloud
+
+A minimal job script for a project that uses Pixi looks as follows:
+
+```bash
+#!/usr/bin/bash -l
+#SBATCH --job-name=fit
+#SBATCH --output=logs/%x_%j.out
+#SBATCH --time=0-02:00:00
+#SBATCH --cpus-per-task=8
+#SBATCH --mem=16G
+
+export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
+pixi run python fit.py
+```
+
+The `-l` on the first line makes the job load the same shell setup as a
+login, which BioCloud requires for conda to work in jobs and which does no
+harm otherwise. No `--partition` is needed, as explained above. After the job
+has finished, `seff <jobid>` shows whether the requested cores and memory
+were used.
+
+## Rules that are easy to break
+
+- No calculations on the login nodes, however small; this includes running a
+  Jupyter kernel or a test script there.
+- In VS Code, open a project folder rather than your whole home directory,
+  otherwise VS Code indexes the home directory on the login node.
+- Do not leave interactive jobs or web portal sessions running when they are
+  not in use.
+- Do not use the GPU node for jobs that only use CPUs.
+- Delete data that is no longer needed; the storage is not meant for long-term
+  storage.
+
+## Further reading
+
+- [Job submission](https://docs.biocloud.bio.aau.dk/slurm/jobsubmission/),
+  with more options and examples of batch scripts
+- [Compute node partitions](https://docs.biocloud.bio.aau.dk/slurm/partitions/),
+  with the hardware of each node
+- [Usage accounting and priority](https://docs.biocloud.bio.aau.dk/slurm/accounting/)
+- [Storage policy](https://docs.biocloud.bio.aau.dk/storage/policy/)
+- [Containers](https://docs.biocloud.bio.aau.dk/software/containers/)
