@@ -20,6 +20,7 @@ Software and templates we suggest building projects on.
 
 - [Pixi](tools/pixi.qmd)
 - [Paper template](tools/paper-template.qmd)
+- [Blog template](tools/blog-template.qmd)
 ::::
 
 :::: {.g-col-12 .g-col-md-4 .section-card}

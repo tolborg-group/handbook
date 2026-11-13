@@ -1,0 +1,230 @@
+---
+title: Blog template
+---
+
+The group has a [Quarto](https://quarto.org) template for a blog of research
+notes in the [blog-template](https://github.com/tolborg-group/blog-template)
+repository. A blog can be a log for a single project or one place for all of
+your work: short write-ups of results, convergence tests, notes on a method,
+or the figures for the next group meeting. Posts are written in Markdown, can
+run Python to make their figures and tables from the data, and support
+equations, citations and cross-references in the same way as a paper.
+
+Like the [paper template](paper-template.qmd), the blog uses [Pixi](pixi.qmd)
+to install everything it needs, so the only prerequisite is that Pixi is
+installed. The rendered example blog can be seen at
+<https://tolborg-group.github.io/blog-template/>, and its example posts are the
+best introduction to writing posts. The
+[README](https://github.com/tolborg-group/blog-template#readme) of the
+repository is the reference for the details.
+
+## Published or local?
+
+Before starting, decide whether the blog should be public:
+
+Published
+: The repository is public, and GitHub Pages publishes the blog as a website
+  that anyone can read. Every push to `main` updates the website.
+
+Local
+: The repository is private, or not on GitHub at all, and the blog is only
+  viewed on your own machine with `pixi run preview`. This works fine for
+  showing the blog at a group meeting.
+
+::: {.callout-warning}
+A site published by GitHub Pages is public even when the repository is
+private. Use the local setup for unpublished results and anything else that
+should not be public.
+:::
+
+## Starting a blog
+
+The repository is a GitHub template, so a new blog is made with **Use this
+template** on its GitHub page, or with the [GitHub CLI](https://cli.github.com):
+
+```bash
+gh repo create tolborg-group/my-blog --template tolborg-group/blog-template --public --clone
+cd my-blog
+```
+
+using `--private` instead of `--public` for a local blog. Then
+
+1. *Published:* on GitHub, go to **Settings → Pages** of the new repository
+   and set **Source** to **GitHub Actions**. The blog is then published at
+   `https://tolborg-group.github.io/my-blog/`.
+
+   *Local:* delete `.github/workflows/publish.yml`. Otherwise GitHub tries to
+   publish the blog on every push, and the run fails.
+2. In `_quarto.yml`, change `title`, `site-url` and the GitHub link in the
+   navigation bar to point to your blog.
+3. Rewrite `about.qmd` to describe what the blog is for.
+4. Once you have read the example posts, delete them and their stored results,
+   as described in the README.
+
+## Previewing
+
+```bash
+pixi run preview
+```
+
+renders the blog and opens it in the browser, and updates the page whenever a
+file is saved. `pixi run render` renders the whole blog into `_site/` without
+opening it.
+
+## Writing a post
+
+Each post is a folder in `posts/` with an `index.qmd` file in it:
+
+```
+posts/2026-11-20-phonon-results/
+├── index.qmd
+├── references.bib
+└── phonons.csv
+```
+
+Starting the folder name with the date keeps the posts in order. Everything the
+post uses, e.g. data, images and a bibliography, goes in the same folder. The
+file starts with a front matter block, followed by the text in Markdown:
+
+```yaml
+---
+title: "Phonon results"
+description: "One sentence shown in the list of posts."
+author: "Your Name"
+date: 2026-11-20
+categories: [phonons]
+draft: true
+---
+```
+
+The title, description, date and categories are shown in the list of posts on
+the front page, where the categories also work as filters. `draft: true` keeps
+the post off the published blog while it is being written; it is still shown
+by `pixi run preview`. Remove the line to publish the post.
+
+The three example posts cover what most posts need:
+
+- [*Writing a post*](https://tolborg-group.github.io/blog-template/posts/2026-11-01-writing-a-post/):
+  Markdown, equations, citations, cross-references, callouts, tabs and margin
+  notes.
+- [*Python in a post*](https://tolborg-group.github.io/blog-template/posts/2026-11-05-python-figures/):
+  figures, tables and numbers in the text that are computed from the data when
+  the post is rendered.
+- [*Interactive charts*](https://tolborg-group.github.io/blog-template/posts/2026-11-10-interactive-charts/):
+  charts that the reader can hover over, zoom and pan, made with Altair.
+
+Reading a post next to its source in `posts/` is the quickest way to learn the
+syntax.
+
+## Python in posts
+
+A code block written as ```` ```{python} ```` is run when the post is
+rendered, and whatever it prints or plots ends up in the post, as in a Jupyter
+notebook. The block below is shown as it is written in a post, followed by its
+output:
+
+```{python}
+#| echo: fenced
+#| label: fig-lj
+#| fig-cap: "The Lennard-Jones potential in reduced units."
+import matplotlib.pyplot as plt
+import numpy as np
+
+r = np.linspace(0.95, 3.0, 300)
+V = 4 * (r**-12 - r**-6)
+
+fig, ax = plt.subplots(figsize=(6, 3.5))
+ax.plot(r, V, color="#0f766e")
+ax.axhline(0, color="gray", linewidth=0.8, linestyle="--")
+ax.set_xlabel(r"$r / \sigma$")
+ax.set_ylabel(r"$V / \varepsilon$")
+ax.set_ylim(-1.2, 1.5)
+ax.spines[["top", "right"]].set_visible(False)
+plt.show()
+```
+
+The lines starting with `#|` are *cell options*. Here, the label and caption
+turn the plot into a numbered figure that the text can refer to as @fig-lj.
+Other useful options are `echo: false`, which hides the code and keeps the
+output, and `code-fold: true`, which hides the code behind a "Code" toggle, as
+in the block below.
+
+A post is a web page, so its figures can also be interactive. The chart below
+is made with [Altair](https://altair-viz.github.io): hover over a curve to read
+off values, click on the legend to highlight a gas, and scroll or drag to zoom
+and pan.
+
+```{python}
+#| code-fold: true
+import altair as alt
+import pandas as pd
+
+# Approximate Lennard-Jones parameters: epsilon in meV, sigma in Ångström.
+gases = {"Ne": (3.1, 2.75), "Ar": (10.3, 3.40), "Kr": (14.1, 3.65), "Xe": (19.7, 3.98)}
+
+r = np.linspace(2.5, 8.0, 300)
+df = pd.concat(
+    pd.DataFrame({
+        "gas": gas,
+        "r": r,
+        "V": 4 * eps * ((sigma / r) ** 12 - (sigma / r) ** 6),
+    })
+    for gas, (eps, sigma) in gases.items()
+)
+
+highlight = alt.selection_point(fields=["gas"], bind="legend")
+hover = alt.selection_point(fields=["r"], nearest=True, on="pointerover", empty=False)
+
+base = alt.Chart(df).encode(
+    x=alt.X("r:Q", title="Distance (Å)"),
+    y=alt.Y("V:Q", title="Energy (meV)", scale=alt.Scale(domain=[-22, 10])),
+    color=alt.Color("gas:N", title="Gas"),
+)
+lines = base.mark_line(clip=True).encode(
+    opacity=alt.condition(highlight, alt.value(1), alt.value(0.15)),
+).add_params(highlight)
+points = base.mark_point(clip=True, filled=True, size=50).encode(
+    opacity=alt.condition(hover, alt.value(1), alt.value(0)),
+    tooltip=[
+        # format="" works around a bug in Vega-Lite 6.4 that shows "undefined"
+        # with nearest=True.
+        alt.Tooltip("gas:N", title="Gas", format=""),
+        alt.Tooltip("r:Q", title="r (Å)", format=".2f"),
+        alt.Tooltip("V:Q", title="V (meV)", format=".2f"),
+    ],
+).add_params(hover)
+
+(lines + points).properties(width="container", height=320).interactive()
+```
+
+The code runs in the Pixi environment of the blog, which has NumPy, pandas,
+Matplotlib and Altair. A package that a post needs is added with `pixi add`,
+see [Adding packages](pixi.qmd#adding-packages), and the updated `pixi.toml`
+and `pixi.lock` are committed with the post.
+
+The blog is set up with `freeze: auto`, which means that the code of a post is
+only run again when its `index.qmd` changes. The results are stored in
+`_freeze/`, which is committed together with the post. Old posts therefore keep
+working when the code or data they used has moved on, and a post can show
+results from data that is too large for the repository or from calculations
+that only run on the cluster: GitHub only needs the stored results to publish
+the blog.
+
+::: {.callout-important}
+Commit the post's folder in `_freeze/` together with the post. If the stored
+results are missing, the post is run again when the blog is published, which
+fails if the data is not in the repository.
+:::
+
+## Help from Claude
+
+The template comes with the `/git:sync` skill from the
+[group skills](../ai/skills.qmd), which commits, pulls and pushes the blog for
+those who do not use git daily. If Claude Code is installed,
+
+```bash
+pixi run setup-claude
+```
+
+installs the group's plugins once, after which `pixi run sync` starts Claude
+Code and runs the skill.
