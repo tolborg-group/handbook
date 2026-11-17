@@ -13,6 +13,10 @@ $footer-fg: $body-color;
 $border-radius: 8px;
 $headings-margin-bottom: 0.6em;
 
+// Background of inline code wherever the rules below do not reach it, e.g. in
+// headings. Quarto's default is a fixed light grey, also in dark mode.
+$code-bg: mix($body-color, $body-bg, 5%);
+
 /*-- scss:rules --*/
 
 $hb-border: mix($body-color, $body-bg, 14%);
@@ -93,7 +97,8 @@ p code:not(.sourceCode),
 li code:not(.sourceCode),
 td code:not(.sourceCode),
 dt code:not(.sourceCode),
-dd code:not(.sourceCode) {
+dd code:not(.sourceCode),
+main :is(h2, h3, h4) code:not(.sourceCode) {
   background-color: $hb-subtle;
   border: 1px solid $hb-border;
   border-radius: 5px;
