@@ -8,14 +8,18 @@ of thumb:
 - **uv** for Python, i.e. a single script or the development of a Python
   package. Everything comes from PyPI, and dependency groups, e.g. for tests or
   documentation, cover the different needs within a single environment.
-- **Pixi** when the project needs software that is not a Python package, e.g.
-  Quarto, LaTeX, compilers or other command line tools. Quarto is available
-  from PyPI as well, but it installs slowly and behaves oddly that way.
+- **Pixi** when the project needs software that is not a Python package, or a
+  Python package that depends on compiled libraries. For example, installing
+  the DFT code GPAW from PyPI means compiling it against libxc, FFTW, MPI and
+  BLAS that you have installed yourself, whereas the conda-forge package brings
+  all of them along. For the same reason Conda, and hence Pixi, is common in
+  bioinformatics, where projects often combine Python with R and compiled
+  tools.
 - **Pixi** when the project needs several environments that must be kept
   independent of each other.
 - **Pixi** when the project benefits from tasks, which define the commands it
   uses once instead of having to remember them or adding a tool such as `make`
-  or `just`. For example, `quarto preview` is easy to remember, but once a
-  Quarto project has several profiles or output formats it is convenient to
-  have a task for each.
+  or `just`. For example, a single command is easy to remember, but once a
+  project runs the same program with several settings, or builds a document
+  in several formats, it is convenient to have a task for each.
 :::
