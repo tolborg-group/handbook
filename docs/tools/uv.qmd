@@ -106,8 +106,24 @@ a colleague who runs the same command gets the same packages. Any other command
 is run in the environment in the same way, e.g. `uv run python` for an
 interactive session.
 
-Avoid `pip install` and running `python analyse.py` directly in a uv project:
-both use whichever Python comes first on the system rather than the project's.
+Alternatively, the environment can be activated as an ordinary virtual
+environment,
+
+```bash
+source .venv/bin/activate
+python analyse.py
+```
+
+on Windows with `.venv\Scripts\activate`, and `deactivate` leaves it again.
+This is a perfectly reasonable way of working, but it takes a little more
+care: `python` then runs whatever is installed in `.venv/` at the time, so
+after changing `pyproject.toml` or pulling changes from a collaborator, run
+`uv sync` to bring the environment up to date. Without an activated
+environment, `python analyse.py` uses whichever Python comes first on the
+system rather than the project's. Packages should still be added with
+`uv add` rather than `pip install`, such that they are recorded in
+`pyproject.toml`.
+
 Editors such as VS Code find the environment in `.venv/` on their own.
 
 ### A script in a single file
