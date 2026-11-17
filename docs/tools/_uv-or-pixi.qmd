@@ -10,9 +10,10 @@ of thumb:
   documentation, cover the different needs within a single environment.
 - **Pixi** when the project needs software that is not a Python package, or a
   Python package that depends on compiled libraries. For example, installing
-  the DFT code GPAW from PyPI means compiling it against libxc, FFTW, MPI and
-  BLAS that you have installed yourself, whereas the conda-forge package brings
-  all of them along. For the same reason Conda, and hence Pixi, is common in
+  the DFT code GPAW from PyPI means compiling it against libraries such as
+  libxc and FFTW that you have to install yourself, whereas Pixi can install
+  those libraries from conda-forge into the same environment. For the same
+  reason Conda, and hence Pixi, is common in
   bioinformatics, where projects often combine Python with R and compiled
   tools.
 - **Pixi** when the project needs several environments that must be kept
