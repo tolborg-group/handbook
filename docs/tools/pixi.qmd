@@ -15,6 +15,8 @@ line tools, LaTeX and Quarto, and it does so without administrator rights. For
 this reason the group templates and this handbook use Pixi, and the only
 prerequisite for working with any of them is that Pixi itself is installed.
 
+{{< include _uv-or-pixi.qmd >}}
+
 ## Installation
 
 On macOS and Linux, run the following in a terminal:

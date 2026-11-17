@@ -1,0 +1,269 @@
+---
+title: uv
+order: 2
+---
+
+[uv](https://docs.astral.sh/uv/) is a package and project manager for Python.
+It installs Python itself and the packages a project needs from
+[PyPI](https://pypi.org) into an environment that belongs to the project, and
+it records the exact versions that were installed, such that a collaborator, a
+cluster or a CI run gets the same environment as you have locally. It replaces
+`pip`, `venv` and tools such as Poetry, and it is very fast.
+
+{{< include _uv-or-pixi.qmd >}}
+
+## Installation
+
+On macOS and Linux, run the following in a terminal:
+
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+On Windows, run the following in PowerShell:
+
+```powershell
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+```
+
+Restart the terminal afterwards and check that the installation worked with
+
+```bash
+uv --version
+```
+
+Other ways of installing, e.g. with Homebrew, are described in the
+[official installation guide](https://docs.astral.sh/uv/getting-started/installation/).
+When uv was installed with the installer above, it updates itself with
+`uv self update`.
+
+## Writing a script
+
+A script, or a few related scripts, is kept in a folder of its own together
+with its environment. The folder is set up with
+
+```bash
+mkdir spectra-analysis
+cd spectra-analysis
+uv init --bare
+```
+
+which writes a minimal `pyproject.toml` and nothing else. Without `--bare`,
+`uv init` sets the folder up as a package, which is described
+[below](#writing-a-package) and is more than a script needs.
+
+::: {.callout-note}
+The group's [`/python:script`](../ai/skills.qmd#skill-python-script) skill for
+Claude Code sets up and writes scripts in this way, and explains how to run
+them afterwards.
+:::
+
+### Choosing the Python version
+
+uv downloads and installs the Python version a project needs, so it does not
+matter which Python, if any, is installed on the system. The version is chosen
+when the project is created,
+
+```bash
+uv init --bare --python 3.12
+```
+
+which sets `requires-python = ">=3.12"` in `pyproject.toml`. To fix the exact
+version used in the folder, run
+
+```bash
+uv python pin 3.12
+```
+
+which writes it to a `.python-version` file. `uv python list` shows the
+versions that are installed and available.
+
+### Adding packages
+
+A package is added to the project with
+
+```bash
+uv add numpy matplotlib
+```
+
+which records it in `pyproject.toml`, installs it into the environment in
+`.venv/` and updates the lock file `uv.lock`. A requirement on the version is
+given in the same way as for pip, e.g. `uv add "numpy>=2"`, and a package is
+removed again with `uv remove`.
+
+### Running
+
+The script is run with
+
+```bash
+uv run analyse.py
+```
+
+`uv run` first checks that the environment in `.venv/` matches `pyproject.toml`
+and `uv.lock`, installs or updates packages if it does not, and then runs the
+script with the Python of that environment. There is nothing to activate, and
+a colleague who runs the same command gets the same packages. Any other command
+is run in the environment in the same way, e.g. `uv run python` for an
+interactive session.
+
+Avoid `pip install` and running `python analyse.py` directly in a uv project:
+both use whichever Python comes first on the system rather than the project's.
+Editors such as VS Code find the environment in `.venv/` on their own.
+
+### A script in a single file
+
+When a script must travel on its own, e.g. by email, the list of packages can
+be written into the script itself instead of a `pyproject.toml`:
+
+```bash
+uv init --script analyse.py --python 3.12
+uv add --script analyse.py numpy
+```
+
+This adds a comment block at the top of the script, and `uv run analyse.py`
+reads it and runs the script in an environment with those packages. The
+drawback is that editors do not find that environment, so they mark the
+imports as missing even though the script runs.
+
+## Writing a package
+
+A Python package, i.e. code that is installed and imported from other scripts
+or packages, is created with
+
+```bash
+uv init --lib mypackage
+```
+
+which creates the following layout:
+
+```
+mypackage/
+├── .python-version
+├── README.md
+├── pyproject.toml
+└── src/
+    └── mypackage/
+        ├── __init__.py
+        └── py.typed
+```
+
+The code of the package goes in `src/mypackage/`, split into modules as it
+grows. `pyproject.toml` also contains a `[build-system]` section, which tells
+uv how to build and install the package.
+
+### The `src/` layout
+
+The package is placed in a `src/` folder rather than directly in the project
+root. If it were in the root, `import mypackage` from the root would import
+the folder directly, regardless of whether the package is installed and of
+how. With `src/`, the package can only be imported once it is installed, such
+that tests and scripts use the package in the same way as anyone else who
+installs it, and a missing file or dependency shows up locally rather than for
+the next person.
+
+uv installs the package into the project's environment in *editable* mode, so
+changes to the code take effect without reinstalling:
+
+```bash
+uv run python -c "import mypackage"
+```
+
+### Dependency groups
+
+Packages that are needed to work on the package, but not to use it, go in
+dependency groups. The `dev` group is installed by default:
+
+```bash
+uv add --dev pytest ruff
+uv run pytest
+```
+
+Further groups, e.g. for building documentation, are added with `--group`:
+
+```bash
+uv add --group docs sphinx
+uv sync --group docs
+```
+
+`uv sync` brings the environment up to date with `pyproject.toml`, and
+`--group` or `--all-groups` includes groups other than `dev`. Groups are part
+of a single environment, which in most cases is all a package needs. Projects
+that need environments that are kept independent of each other are better
+served by [Pixi](pixi.qmd#environments).
+
+Dependency groups are not part of the package when it is installed by someone
+else. Optional features for the users of a package are instead declared as
+*extras*, e.g. `uv add --optional plot matplotlib`, which users install with
+`pip install "mypackage[plot]"`.
+
+A package is built into files that can be distributed with `uv build`, and
+`uv publish` uploads them to PyPI.
+
+## `pyproject.toml` and `uv.lock`
+
+The two files record different things:
+
+`pyproject.toml`
+:   The requirements. It lists the packages the project needs, normally with a
+    lower bound on the version such as `numpy>=2`, and the Python versions it
+    supports. It is the file that you edit, either by hand or with `uv add` and
+    `uv remove`.
+
+`uv.lock`
+:   The resolution. uv writes it and it records the exact version of every
+    package that was installed, including the packages that those depend on in
+    turn, for all operating systems at once. It should not be edited by hand.
+
+`.python-version`
+:   The Python version used in the folder, if one is pinned.
+
+`.venv/`
+:   The environment itself. It can be deleted at any time and is recreated
+    from the files above.
+
+`pyproject.toml`, `uv.lock` and `.python-version` should be committed to git,
+`.venv/` should not. uv places a `.gitignore` inside `.venv/`, such that git
+ignores it without further setup.
+
+For a script, or a project that produces results, the lock file is what makes
+the environment reproducible. For a package, the lock file only applies to
+working on the package itself: someone who installs it from PyPI or with pip
+gets whichever versions satisfy `pyproject.toml` at that time. Its requirements
+should therefore describe what the package actually works with, rather than
+pinning exact versions.
+
+uv keeps the lock file as it is unless `pyproject.toml` changes. The packages
+are updated to the newest versions allowed with
+
+```bash
+uv lock --upgrade                 # all packages
+uv lock --upgrade-package numpy   # a single package
+```
+
+On a CI run, `uv sync --locked` fails if `uv.lock` does not match
+`pyproject.toml`, which catches a lock file that was not committed after a
+change.
+
+## Tools that are not tied to a project
+
+A command line tool that is distributed as a Python package can be run without
+adding it to any project with `uvx`, e.g.
+
+```bash
+uvx ruff format analyse.py
+```
+
+which installs it into a temporary environment that is cached for later runs.
+A tool that is used often is installed permanently with
+
+```bash
+uv tool install ruff
+```
+
+which makes the `ruff` command available everywhere, in an environment of its
+own. `uv tool upgrade --all` updates the installed tools.
+
+## Further reading
+
+The [uv documentation](https://docs.astral.sh/uv/) covers all of the above in
+more detail, and `uv help` lists the available commands.

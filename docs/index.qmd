@@ -19,6 +19,7 @@ bottom of each page.
 Software and templates we suggest building projects on.
 
 - [Pixi](tools/pixi.qmd)
+- [uv](tools/uv.qmd)
 - [Paper template](tools/paper-template.qmd)
 - [Blog template](tools/blog-template.qmd)
 ::::
